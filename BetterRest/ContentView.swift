@@ -13,58 +13,14 @@ struct ContentView: View {
     @State private var sleepAmount = 8.0
     @State private var coffeeAmount = 1
 
-    @State private var alertTitle = ""
-    @State private var alertMessage = ""
-    @State private var showingAlert = false
-
     static var defaultWakeTime: Date {
         var components = DateComponents()
         components.hour = 7
         components.minute = 0
         return Calendar.current.date(from: components) ?? .now
     }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("When do you want to wake up?") {
-                    DatePicker(
-                        "Please select a time",
-                        selection: $wakeUp,
-                        displayedComponents: .hourAndMinute
-                    )
-                }
-
-                Section("your desired amount of sleep?") {
-                    Stepper(
-                        "\(sleepAmount.formatted()) hours",
-                        value: $sleepAmount,
-                        in: 4...12,
-                        step: 0.25
-                    )
-                }
-
-                Section("Daily coffee intake") {
-                    Picker("How many cups a day?", selection: $coffeeAmount) {
-                        ForEach(0..<21) { number in
-                            Text("^[\(number) cups](inflect: true)")
-                        }
-                    }
-                }
-            }
-            .navigationTitle("BetterRest")
-            .toolbar {
-                Button("Calculate", action: calculateBedtime)
-            }
-            .alert(alertTitle, isPresented: $showingAlert) {
-                Button("OK") {}
-            } message: {
-                Text(alertMessage)
-            }
-        }
-    }
-
-    func calculateBedtime() {
+    
+    var idealSleepTime: Date {
         do {
             let config = MLModelConfiguration()
             let model = try SleepCalculator(configuration: config)
@@ -82,15 +38,82 @@ struct ContentView: View {
                 coffee: Double(coffeeAmount)
             )
             // 'prediction.actualSleep' will be some number in seconds
-            let sleepTime = wakeUp - prediction.actualSleep  // you can subtract a value in seconds directly from a Date
-            alertTitle = "Your ideal bedtime is..."
-            alertMessage = sleepTime.formatted(date: .omitted, time: .shortened)
+            return wakeUp - prediction.actualSleep  // you can subtract a value in seconds directly from a Date
         } catch {
-            alertTitle = "Error!"
-            alertMessage = "There was an error calculating your sleep time"
+            print("There was a problem calculating the bedtime.")
         }
+        
+        return .now
+    }
 
-        showingAlert = true
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Text("When do you want to wake up?")
+                            .font(.headline)
+
+                        Spacer()
+
+                        DatePicker(
+                            "Please select a time",
+                            selection: $wakeUp,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .labelsHidden()
+                    }
+                }
+
+                Section {
+                    VStack(alignment: .leading) {
+                        Text("What's your desired amount of sleep?")
+                            .font(.headline)
+                        Stepper(
+                            "\(sleepAmount.formatted()) hours",
+                            value: $sleepAmount,
+                            in: 4...12,
+                            step: 0.25
+                        )
+                    }
+                }
+
+                Section {
+                    VStack(alignment: .leading) {
+                        Text("Daily coffee intake")
+                            .font(.headline)
+                        // Stepper(coffeeAmount == 1 ? "1 cup" : "\(coffeeAmount) cups", value: $coffeeAmount, in: 1...20)
+                        Stepper(
+                            "^[\(coffeeAmount) cup](inflect: true)",
+                            value: $coffeeAmount,
+                            in: 0...20
+                        )
+                        //  This syntax tells SwiftUI that the word "cup" needs to be inflected to match whatever is in the coffeeAmount variable, which in this case means it will automatically be converted from "cup" to "cups" as appropriate.
+                    }
+                }
+                
+                Section {
+                    VStack {
+                        Text("Your Ideal Bedtime")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                            .padding()
+                        
+                        HStack {
+                            Spacer()
+                            
+                            Text(idealSleepTime.formatted(date: .omitted, time: .shortened))
+                                .font(.largeTitle.monospaced().bold())
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .padding(.bottom, 50)
+                    }
+                }
+            }
+            .navigationTitle("BetterRest")
+        }
     }
 }
 
