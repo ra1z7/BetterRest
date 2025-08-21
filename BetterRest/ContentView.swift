@@ -45,13 +45,11 @@ struct ContentView: View {
                 }
 
                 Section("Daily coffee intake") {
-                    // Stepper(coffeeAmount == 1 ? "1 cup" : "\(coffeeAmount) cups", value: $coffeeAmount, in: 1...20)
-                    Stepper(
-                        "^[\(coffeeAmount) cup](inflect: true)",
-                        value: $coffeeAmount,
-                        in: 1...20
-                    )
-                    //  This syntax tells SwiftUI that the word "cup" needs to be inflected to match whatever is in the coffeeAmount variable, which in this case means it will automatically be converted from "cup" to "cups" as appropriate.
+                    Picker("How many cups a day?", selection: $coffeeAmount) {
+                        ForEach(0..<21) { number in
+                            Text("^[\(number) cups](inflect: true)")
+                        }
+                    }
                 }
             }
             .navigationTitle("BetterRest")
